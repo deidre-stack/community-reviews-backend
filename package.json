@@ -1,0 +1,20 @@
+{
+  "name": "community-reviews-backend",
+  "version": "1.0.0",
+  "description": "Light backend for community star-rating and review widget, with a moderation queue.",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0"
+  }
+}

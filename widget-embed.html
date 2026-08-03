@@ -1,0 +1,146 @@
+<!-- ============================================================
+Community rating & review widget - paste this into the Sierra
+Interactive custom HTML block on a community page.
+
+Before pasting:
+  1. Set API_BASE below to your deployed backend URL
+     (e.g. "https://haven-reviews.onrender.com").
+  2. Set COMMUNITY_SLUG and COMMUNITY_NAME for this specific page
+     (e.g. "sherwood-park" / "Sherwood Park"). Each community page
+     gets its own slug so ratings don't mix together.
+Submitted reviews will NOT appear immediately - they wait in the
+moderation queue at /admin until approved.
+============================================================ -->
+<div id="hrt-reviews-widget">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; font-family:inherit;">
+    <div>
+      <div id="hrt-agg-stars" style="font-size:22px; color:#b7791f; letter-spacing:2px;"></div>
+      <div id="hrt-agg-summary" style="font-size:13px; color:#666; margin-top:2px;"></div>
+    </div>
+  </div>
+
+  <div id="hrt-approved-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
+
+  <div style="background:#f7f7f5; border:1px solid #e2e2e2; border-radius:12px; padding:16px 18px;">
+    <p style="font-size:15px; font-weight:600; margin:0 0 10px;">Rate this community</p>
+    <div id="hrt-star-input" style="font-size:26px; color:#c9c9c9; letter-spacing:4px; margin-bottom:10px; cursor:pointer;"></div>
+    <input id="hrt-reviewer-name" type="text" placeholder="Your name" style="width:100%; padding:8px 10px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;" />
+    <textarea id="hrt-review-text" placeholder="What do you like about this community?" style="width:100%; min-height:64px; padding:8px 10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; margin-bottom:10px;"></textarea>
+    <input id="hrt-hp" type="text" name="website" autocomplete="off" tabindex="-1" style="position:absolute; left:-9999px;" />
+    <button id="hrt-submit-review" style="padding:9px 16px; border-radius:6px; border:1px solid #333; background:#fff; cursor:pointer; font-size:14px;">Submit review</button>
+    <p id="hrt-confirm" style="font-size:13px; color:#2e7d32; margin:10px 0 0; display:none;">Thanks! Your review is awaiting approval before it appears here.</p>
+    <p id="hrt-error" style="font-size:13px; color:#c62828; margin:10px 0 0; display:none;"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var API_BASE = 'https://YOUR-BACKEND-URL-HERE';      // <-- set this
+  var COMMUNITY_SLUG = 'sherwood-park';                 // <-- set this per page
+  var COMMUNITY_NAME = 'Sherwood Park';                 // <-- set this per page
+
+  var selectedRating = 0;
+
+  function starString(n) {
+    var full = Math.round(n);
+    var s = '';
+    for (var i = 0; i < 5; i++) s += (i < full ? '★' : '☆');
+    return s;
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+
+  function loadReviews() {
+    fetch(API_BASE + '/api/reviews?community=' + encodeURIComponent(COMMUNITY_SLUG))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        document.getElementById('hrt-agg-stars').textContent = starString(data.average);
+        document.getElementById('hrt-agg-summary').textContent = data.count
+          ? data.average.toFixed(1) + ' from ' + data.count + ' review' + (data.count === 1 ? '' : 's')
+          : 'No reviews yet - be the first';
+
+        var list = document.getElementById('hrt-approved-list');
+        list.innerHTML = '';
+        data.reviews.forEach(function (r) {
+          var row = document.createElement('div');
+          row.style.cssText = 'border-top:1px solid #e2e2e2; padding-top:10px;';
+          row.innerHTML =
+            '<div style="display:flex; align-items:center; justify-content:space-between;">' +
+              '<span style="font-size:14px; font-weight:600;">' + escapeHtml(r.name) + '</span>' +
+              '<span style="font-size:14px; color:#b7791f; letter-spacing:1px;">' + starString(r.rating) + '</span>' +
+            '</div>' +
+            '<p style="font-size:14px; color:#444; margin:4px 0 0;">' + escapeHtml(r.text) + '</p>';
+          list.appendChild(row);
+        });
+      })
+      .catch(function () {
+        document.getElementById('hrt-agg-summary').textContent = 'Reviews are temporarily unavailable.';
+      });
+  }
+
+  function renderStarInput() {
+    var el = document.getElementById('hrt-star-input');
+    el.innerHTML = '';
+    for (var i = 1; i <= 5; i++) {
+      var s = document.createElement('span');
+      s.textContent = i <= selectedRating ? '★' : '☆';
+      s.style.marginRight = '2px';
+      s.dataset.val = i;
+      s.addEventListener('click', function () {
+        selectedRating = parseInt(this.dataset.val, 10);
+        renderStarInput();
+      });
+      el.appendChild(s);
+    }
+  }
+
+  document.getElementById('hrt-submit-review').addEventListener('click', function () {
+    var errorEl = document.getElementById('hrt-error');
+    var confirmEl = document.getElementById('hrt-confirm');
+    errorEl.style.display = 'none';
+    confirmEl.style.display = 'none';
+
+    var name = document.getElementById('hrt-reviewer-name').value.trim();
+    var text = document.getElementById('hrt-review-text').value.trim();
+    var hp = document.getElementById('hrt-hp').value;
+
+    if (!selectedRating) { errorEl.textContent = 'Please choose a star rating.'; errorEl.style.display = 'block'; return; }
+    if (!text) { errorEl.textContent = 'Please add a short review.'; errorEl.style.display = 'block'; return; }
+
+    fetch(API_BASE + '/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        community: COMMUNITY_SLUG,
+        communityName: COMMUNITY_NAME,
+        name: name,
+        rating: selectedRating,
+        text: text,
+        hp: hp,
+      }),
+    })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Something went wrong.'); });
+        return r.json();
+      })
+      .then(function () {
+        document.getElementById('hrt-reviewer-name').value = '';
+        document.getElementById('hrt-review-text').value = '';
+        selectedRating = 0;
+        renderStarInput();
+        confirmEl.style.display = 'block';
+      })
+      .catch(function (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+      });
+  });
+
+  loadReviews();
+  renderStarInput();
+})();
+</script>
