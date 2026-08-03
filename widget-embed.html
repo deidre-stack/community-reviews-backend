@@ -14,8 +14,8 @@ all 300+ community pages - nothing to fill in per page.
 Submitted reviews will NOT appear immediately - they wait in the
 moderation queue at /admin until approved.
 ============================================================ -->
-<div id="hrt-reviews-widget">
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; font-family:inherit;">
+<div id="hrt-reviews-widget" style="font-family:'Roboto', sans-serif;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
     <div>
       <div id="hrt-agg-stars" style="font-size:22px; color:#b7791f; letter-spacing:2px;"></div>
       <div id="hrt-agg-summary" style="font-size:13px; color:#666; margin-top:2px;"></div>
@@ -24,13 +24,13 @@ moderation queue at /admin until approved.
 
   <div id="hrt-approved-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
 
-  <div style="background:#f7f7f5; border:1px solid #e2e2e2; border-radius:12px; padding:16px 18px;">
-    <p style="font-size:15px; font-weight:600; margin:0 0 10px;">Rate this community</p>
-    <div id="hrt-star-input" style="font-size:26px; color:#c9c9c9; letter-spacing:4px; margin-bottom:10px; cursor:pointer;"></div>
-    <input id="hrt-reviewer-name" type="text" placeholder="Your name" style="width:100%; padding:8px 10px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;" />
-    <textarea id="hrt-review-text" placeholder="What do you like about this community?" style="width:100%; min-height:64px; padding:8px 10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; margin-bottom:10px;"></textarea>
+  <div style="background:rgba(197,206,194,0.65); border:1px solid rgba(139,150,135,0.5); border-radius:12px; padding:16px 18px;">
+    <p style="font-family:'Montserrat', sans-serif; font-size:16px; font-weight:600; margin:0 0 10px; color:#2c2c2a;">Found your haven here? Tell us why.</p>
+    <div id="hrt-star-input" style="font-size:26px; color:#8b9687; letter-spacing:4px; margin-bottom:10px; cursor:pointer;"></div>
+    <input id="hrt-reviewer-name" type="text" placeholder="Your name" style="width:100%; padding:8px 10px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-family:'Roboto', sans-serif;" />
+    <textarea id="hrt-review-text" placeholder="What do you like about this community?" style="width:100%; min-height:64px; padding:8px 10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; margin-bottom:10px; font-family:'Roboto', sans-serif;"></textarea>
     <input id="hrt-hp" type="text" name="website" autocomplete="off" tabindex="-1" style="position:absolute; left:-9999px;" />
-    <button id="hrt-submit-review" style="padding:9px 16px; border-radius:6px; border:1px solid #333; background:#fff; cursor:pointer; font-size:14px;">Submit review</button>
+    <button id="hrt-submit-review" style="padding:9px 18px; border-radius:6px; border:1px solid #8b9687; background:#C5CEC2; color:#2c2c2a; cursor:pointer; font-size:14px; font-family:'Montserrat', sans-serif; font-weight:600;">Submit review</button>
     <p id="hrt-confirm" style="font-size:13px; color:#2e7d32; margin:10px 0 0; display:none;">Thanks! Your review is awaiting approval before it appears here.</p>
     <p id="hrt-error" style="font-size:13px; color:#c62828; margin:10px 0 0; display:none;"></p>
   </div>
