@@ -13,8 +13,11 @@
   #login input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
   #login button, .btn { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 14px; }
   .btn.approve { border-color: #2e7d32; color: #2e7d32; }
-  .btn.reject { border-color: #c62828; color: #c62828; }
+  .btn.reject, .btn.remove { border-color: #c62828; color: #c62828; }
   .btn:hover { background: #f4f4f4; }
+  #tabs { display: flex; gap: 8px; margin-top: 20px; }
+  #tabs .tab { padding: 6px 14px; border-radius: 999px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 13px; color: #555; }
+  #tabs .tab.active { background: #1a1a1a; border-color: #1a1a1a; color: #fff; }
   .community-group { margin-top: 28px; }
   .community-group h2 { font-size: 16px; margin-bottom: 8px; }
   .card { border: 1px solid #e2e2e2; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
@@ -31,25 +34,40 @@
 <body>
 
 <h1>Community reviews - moderation</h1>
-<p class="sub">Enter your admin token to load pending reviews. This page is not linked from the public site, but keep the token private.</p>
+<p class="sub">Enter your admin token to load reviews. This page is not linked from the public site, but keep the token private.</p>
 
 <div id="login">
   <input id="token-input" type="password" placeholder="Admin token" autocomplete="off" />
-  <button class="btn" id="load-btn">Load pending reviews</button>
+  <button class="btn" id="load-btn">Load reviews</button>
+</div>
+<div id="tabs">
+  <button class="tab active" id="tab-pending" data-status="pending">Pending</button>
+  <button class="tab" id="tab-approved" data-status="approved">Approved</button>
 </div>
 <div id="status"></div>
 
 <div id="results"></div>
-<p id="empty">No reviews are waiting for approval right now.</p>
+<p id="empty">Nothing here right now.</p>
 
 <script>
   var API_BASE = window.location.origin;
   var tokenInput = document.getElementById('token-input');
   var storedToken = localStorage.getItem('reviewsAdminToken');
   if (storedToken) tokenInput.value = storedToken;
+  var currentStatus = 'pending';
 
-  document.getElementById('load-btn').addEventListener('click', loadPending);
-  tokenInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') loadPending(); });
+  document.getElementById('load-btn').addEventListener('click', function () { loadReviews(); });
+  tokenInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') loadReviews(); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function (tab) {
+    tab.addEventListener('click', function () {
+      currentStatus = tab.getAttribute('data-status');
+      Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function (t) {
+        t.classList.toggle('active', t === tab);
+      });
+      loadReviews();
+    });
+  });
 
   function starString(n) {
     var full = Math.round(n);
@@ -64,13 +82,13 @@
     el.style.color = isError ? '#c62828' : '#666';
   }
 
-  function loadPending() {
+  function loadReviews() {
     var token = tokenInput.value.trim();
     if (!token) { setStatus('Enter your admin token first.', true); return; }
     localStorage.setItem('reviewsAdminToken', token);
     setStatus('Loading...');
 
-    fetch(API_BASE + '/api/admin/reviews?status=pending', {
+    fetch(API_BASE + '/api/admin/reviews?status=' + currentStatus, {
       headers: { 'x-admin-token': token },
     })
       .then(function (r) {
@@ -107,16 +125,17 @@
       byCommunity[communityName].forEach(function (r) {
         var card = document.createElement('div');
         card.className = 'card';
+        var actionsHtml = currentStatus === 'approved'
+          ? '<button class="btn remove" data-id="' + r.id + '" data-action="remove">Remove</button>'
+          : '<button class="btn approve" data-id="' + r.id + '" data-action="approve">Approve</button>' +
+            '<button class="btn reject" data-id="' + r.id + '" data-action="reject">Reject</button>';
         card.innerHTML =
           '<div class="top">' +
             '<span class="name">' + escapeHtml(r.reviewer_name) + '</span>' +
             '<span class="stars">' + starString(r.rating) + '</span>' +
           '</div>' +
           '<p class="text">' + escapeHtml(r.review_text) + '</p>' +
-          '<div class="actions">' +
-            '<button class="btn approve" data-id="' + r.id + '" data-action="approve">Approve</button>' +
-            '<button class="btn reject" data-id="' + r.id + '" data-action="reject">Reject</button>' +
-          '</div>' +
+          '<div class="actions">' + actionsHtml + '</div>' +
           '<p class="meta">Submitted ' + r.created_at + ' UTC</p>';
         group.appendChild(card);
       });
@@ -132,15 +151,22 @@
   }
 
   function moderate(id, action, btn) {
+    if (action === 'remove' && !window.confirm('Remove this review permanently? This can\'t be undone.')) {
+      return;
+    }
     var token = tokenInput.value.trim();
     btn.disabled = true;
-    fetch(API_BASE + '/api/admin/reviews/' + id + '/' + action, {
-      method: 'POST',
+    var url = action === 'remove'
+      ? API_BASE + '/api/admin/reviews/' + id
+      : API_BASE + '/api/admin/reviews/' + id + '/' + action;
+    var method = action === 'remove' ? 'DELETE' : 'POST';
+    fetch(url, {
+      method: method,
       headers: { 'x-admin-token': token },
     })
       .then(function (r) {
         if (!r.ok) throw new Error('Action failed.');
-        return loadPending();
+        return loadReviews();
       })
       .catch(function (err) {
         setStatus(err.message, true);
@@ -154,7 +180,7 @@
     return div.innerHTML;
   }
 
-  if (storedToken) loadPending();
+  if (storedToken) loadReviews();
 </script>
 </body>
 </html>
