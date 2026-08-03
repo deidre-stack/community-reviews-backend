@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Community reviews - moderation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  p.sub { color: #666; margin-top: 0; font-size: 14px; }
+  #login { display: flex; gap: 8px; margin: 24px 0; }
+  #login input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  #login button, .btn { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 14px; }
+  .btn.approve { border-color: #2e7d32; color: #2e7d32; }
+  .btn.reject { border-color: #c62828; color: #c62828; }
+  .btn:hover { background: #f4f4f4; }
+  .community-group { margin-top: 28px; }
+  .community-group h2 { font-size: 16px; margin-bottom: 8px; }
+  .card { border: 1px solid #e2e2e2; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .card .top { display: flex; justify-content: space-between; align-items: center; }
+  .card .name { font-weight: 600; font-size: 14px; }
+  .card .stars { color: #b7791f; letter-spacing: 1px; }
+  .card .text { font-size: 14px; color: #333; margin: 6px 0 10px; }
+  .card .actions { display: flex; gap: 8px; }
+  .card .meta { font-size: 12px; color: #999; margin-top: 6px; }
+  #empty { color: #777; font-size: 14px; margin-top: 20px; display: none; }
+  #status { font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Community reviews - moderation</h1>
+<p class="sub">Enter your admin token to load pending reviews. This page is not linked from the public site, but keep the token private.</p>
+
+<div id="login">
+  <input id="token-input" type="password" placeholder="Admin token" autocomplete="off" />
+  <button class="btn" id="load-btn">Load pending reviews</button>
+</div>
+<div id="status"></div>
+
+<div id="results"></div>
+<p id="empty">No reviews are waiting for approval right now.</p>
+
+<script>
+  var API_BASE = window.location.origin;
+  var tokenInput = document.getElementById('token-input');
+  var storedToken = localStorage.getItem('reviewsAdminToken');
+  if (storedToken) tokenInput.value = storedToken;
+
+  document.getElementById('load-btn').addEventListener('click', loadPending);
+  tokenInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') loadPending(); });
+
+  function starString(n) {
+    var full = Math.round(n);
+    var s = '';
+    for (var i = 0; i < 5; i++) s += (i < full ? '★' : '☆');
+    return s;
+  }
+
+  function setStatus(msg, isError) {
+    var el = document.getElementById('status');
+    el.textContent = msg || '';
+    el.style.color = isError ? '#c62828' : '#666';
+  }
+
+  function loadPending() {
+    var token = tokenInput.value.trim();
+    if (!token) { setStatus('Enter your admin token first.', true); return; }
+    localStorage.setItem('reviewsAdminToken', token);
+    setStatus('Loading...');
+
+    fetch(API_BASE + '/api/admin/reviews?status=pending', {
+      headers: { 'x-admin-token': token },
+    })
+      .then(function (r) {
+        if (r.status === 401) throw new Error('Token rejected. Double-check it and try again.');
+        if (!r.ok) throw new Error('Something went wrong loading reviews.');
+        return r.json();
+      })
+      .then(function (data) {
+        setStatus('');
+        render(data.reviews || []);
+      })
+      .catch(function (err) {
+        setStatus(err.message, true);
+      });
+  }
+
+  function render(reviews) {
+    var results = document.getElementById('results');
+    results.innerHTML = '';
+    document.getElementById('empty').style.display = reviews.length ? 'none' : 'block';
+
+    var byCommunity = {};
+    reviews.forEach(function (r) {
+      (byCommunity[r.community_name] = byCommunity[r.community_name] || []).push(r);
+    });
+
+    Object.keys(byCommunity).sort().forEach(function (communityName) {
+      var group = document.createElement('div');
+      group.className = 'community-group';
+      var h2 = document.createElement('h2');
+      h2.textContent = communityName;
+      group.appendChild(h2);
+
+      byCommunity[communityName].forEach(function (r) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML =
+          '<div class="top">' +
+            '<span class="name">' + escapeHtml(r.reviewer_name) + '</span>' +
+            '<span class="stars">' + starString(r.rating) + '</span>' +
+          '</div>' +
+          '<p class="text">' + escapeHtml(r.review_text) + '</p>' +
+          '<div class="actions">' +
+            '<button class="btn approve" data-id="' + r.id + '" data-action="approve">Approve</button>' +
+            '<button class="btn reject" data-id="' + r.id + '" data-action="reject">Reject</button>' +
+          '</div>' +
+          '<p class="meta">Submitted ' + r.created_at + ' UTC</p>';
+        group.appendChild(card);
+      });
+
+      results.appendChild(group);
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-action]'), function (btn) {
+      btn.addEventListener('click', function () {
+        moderate(btn.getAttribute('data-id'), btn.getAttribute('data-action'), btn);
+      });
+    });
+  }
+
+  function moderate(id, action, btn) {
+    var token = tokenInput.value.trim();
+    btn.disabled = true;
+    fetch(API_BASE + '/api/admin/reviews/' + id + '/' + action, {
+      method: 'POST',
+      headers: { 'x-admin-token': token },
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Action failed.');
+        return loadPending();
+      })
+      .catch(function (err) {
+        setStatus(err.message, true);
+        btn.disabled = false;
+      });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+
+  if (storedToken) loadPending();
+</script>
+</body>
+</html>
