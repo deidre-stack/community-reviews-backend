@@ -36,17 +36,17 @@ Whichever you pick, once deployed:
 2. Set `ALLOWED_ORIGINS` to `https://www.findyourhaven.ca,https://findyourhaven.ca` so only your site can call the API from a browser.
 3. Note the live URL Render/Railway gives you — you'll paste it into the widget next.
 
-## Embedding on a community page
+## Embedding on a community page (works for all 300+ pages, unedited)
 
-Open `widget-embed.html`, fill in the three marked lines near the top of the `<script>`:
+Open `widget-embed.html` and set the one line near the top of the `<script>`:
 
 ```
 var API_BASE = 'https://your-deployed-url-here';
-var COMMUNITY_SLUG = 'sherwood-park';
-var COMMUNITY_NAME = 'Sherwood Park';
 ```
 
-Then paste the whole file's contents into the Sierra Interactive custom HTML block on that community's page. Each community page needs its own copy with its own slug/name so ratings don't get mixed across communities — the slug is just an internal ID (lowercase, hyphenated), the name is what displays.
+That's the only edit needed, and only once. The widget figures out which community it's on automatically: the slug comes from the page's URL (e.g. `/sherwood-park/` -> `sherwood-park`, `/edmonton/southwest/` -> `edmonton-southwest`, so it stays unique even when a name repeats under a different area), and the display name comes from the page's own `<h1>` heading.
+
+Paste the exact same, unedited snippet into the Sierra Interactive custom HTML block on every community page. If Sierra Interactive supports injecting custom code sitewide (rather than per page), even better — add it there once and it will still self-configure per page. Worth asking their support whether that option exists, since it would turn this into a single edit instead of 300 copy-pastes.
 
 ## Moderating reviews
 

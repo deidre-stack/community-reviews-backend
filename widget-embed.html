@@ -1,13 +1,16 @@
 <!-- ============================================================
-Community rating & review widget - paste this into the Sierra
-Interactive custom HTML block on a community page.
+Community rating & review widget - paste this exact snippet, unedited,
+into the Sierra Interactive custom HTML block on EVERY community page.
 
-Before pasting:
+Before pasting anywhere:
   1. Set API_BASE below to your deployed backend URL
-     (e.g. "https://haven-reviews.onrender.com").
-  2. Set COMMUNITY_SLUG and COMMUNITY_NAME for this specific page
-     (e.g. "sherwood-park" / "Sherwood Park"). Each community page
-     gets its own slug so ratings don't mix together.
+     (e.g. "https://haven-reviews.onrender.com"). Set it once - it's
+     the same value on every page.
+
+That's it. Each page figures out its own community automatically from
+its URL and its <h1> heading, so this same snippet works unchanged on
+all 300+ community pages - nothing to fill in per page.
+
 Submitted reviews will NOT appear immediately - they wait in the
 moderation queue at /admin until approved.
 ============================================================ -->
@@ -35,9 +38,37 @@ moderation queue at /admin until approved.
 
 <script>
 (function () {
-  var API_BASE = 'https://YOUR-BACKEND-URL-HERE';      // <-- set this
-  var COMMUNITY_SLUG = 'sherwood-park';                 // <-- set this per page
-  var COMMUNITY_NAME = 'Sherwood Park';                 // <-- set this per page
+  var API_BASE = 'https://YOUR-BACKEND-URL-HERE';      // <-- set this once
+
+  // Figures out which community this page is for, with no per-page setup:
+  // - slug comes from the page URL (unique and stable even if two
+  //   communities share a name under different areas, e.g.
+  //   /edmonton/southwest/ -> "edmonton-southwest")
+  // - display name comes from the page's own <h1>, falling back to the
+  //   page title, falling back to a readable version of the slug
+  function detectCommunity() {
+    var path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    var slug = path
+      .toLowerCase()
+      .replace(/\//g, '-')
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'home';
+
+    var h1 = document.querySelector('h1');
+    var name = h1 && h1.textContent.trim();
+    if (!name) {
+      name = document.title.split(/\s[-|]\s/)[0].trim();
+    }
+    if (!name) {
+      name = slug.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
+    return { slug: slug, name: name };
+  }
+
+  var COMMUNITY = detectCommunity();
+  var COMMUNITY_SLUG = COMMUNITY.slug;
+  var COMMUNITY_NAME = COMMUNITY.name;
 
   var selectedRating = 0;
 
