@@ -177,6 +177,14 @@ app.post('/api/admin/reviews/:id/reject', requireAdmin, (req, res) => {
   res.json({ status: 'rejected' });
 });
 
+// Permanently remove a review (e.g. an approved one you no longer want live).
+// DELETE /api/admin/reviews/:id
+app.delete('/api/admin/reviews/:id', requireAdmin, (req, res) => {
+  const result = db.prepare(`DELETE FROM reviews WHERE id = ?`).run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  res.json({ status: 'deleted' });
+});
+
 app.get('/', (req, res) => {
   res.type('text/plain').send('Community reviews API is running. See /admin for the moderation dashboard.');
 });
