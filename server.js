@@ -25,7 +25,12 @@ app.use(
       if (!origin || ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error('Not allowed by CORS'));
+      // Reject without throwing: this just omits CORS headers so the
+      // browser blocks the response for disallowed cross-origin callers.
+      // Throwing here instead would turn every non-approved request
+      // (including the app's own domain, e.g. this Render URL used
+      // directly) into a 500 error, which is what happened before this fix.
+      return callback(null, false);
     },
   })
 );
