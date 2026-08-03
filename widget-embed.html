@@ -33,6 +33,7 @@ moderation queue at /admin until approved.
     <button id="hrt-submit-review" style="padding:9px 18px; border-radius:6px; border:1px solid #8b9687; background:#C5CEC2; color:#2c2c2a; cursor:pointer; font-size:14px; font-family:'Roboto', sans-serif; font-weight:500;">Submit review</button>
     <p id="hrt-confirm" style="font-size:13px; color:#2e7d32; margin:10px 0 0; display:none;">Thanks! Your review is awaiting approval before it appears here.</p>
     <p id="hrt-error" style="font-size:13px; color:#c62828; margin:10px 0 0; display:none;"></p>
+    <p style="font-size:12px; color:#5c655a; margin:12px 0 0; font-family:'Roboto', sans-serif;">We want your honest opinion, but we will not accept hate speech, harassment, or discriminatory language. Reviews are reviewed before posting.</p>
   </div>
 </div>
 
@@ -72,10 +73,19 @@ moderation queue at /admin until approved.
 
   var selectedRating = 0;
 
+  // Stars are written as backslash-u escapes (not literal characters) on
+  // purpose: some CMS "custom code" editors save content through a
+  // non-UTF-8-safe pipeline and silently replace multi-byte characters
+  // (like an actual star glyph) with "?". An escape sequence is plain
+  // ASCII in the source, so it survives any editor untouched and only
+  // becomes a real star glyph when the browser's JS engine runs it.
+  var STAR_FULL = '\u2605';
+  var STAR_EMPTY = '\u2606';
+
   function starString(n) {
     var full = Math.round(n);
     var s = '';
-    for (var i = 0; i < 5; i++) s += (i < full ? '★' : '☆');
+    for (var i = 0; i < 5; i++) s += (i < full ? STAR_FULL : STAR_EMPTY);
     return s;
   }
 
@@ -118,7 +128,7 @@ moderation queue at /admin until approved.
     el.innerHTML = '';
     for (var i = 1; i <= 5; i++) {
       var s = document.createElement('span');
-      s.textContent = i <= selectedRating ? '★' : '☆';
+      s.textContent = i <= selectedRating ? STAR_FULL : STAR_EMPTY;
       s.style.marginRight = '2px';
       s.dataset.val = i;
       s.addEventListener('click', function () {
